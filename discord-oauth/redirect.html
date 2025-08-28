@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord OAuth 純前端 JavaScript 範例</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+        }
+        button {
+            background-color: #7289da;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #677bc4;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+        .error {
+            color: #e74c3c;
+            background-color: #fdf2f2;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #fecaca;
+            margin: 10px 0;
+        }
+        .success {
+            color: #16a34a;
+            background-color: #f0fdf4;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #bbf7d0;
+            margin: 10px 0;
+        }
+        .user-info {
+            background-color: #f0f9ff;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #bae6fd;
+        }
+        .avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-right: 15px;
+        }
+        .user-details {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .config-section {
+            background-color: #fef3c7;
+            border: 1px solid #fbbf24;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin: 5px 0;
+            font-family: monospace;
+        }
+        .code-block {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        .step {
+            counter-increment: step-counter;
+            margin-bottom: 20px;
+        }
+        .step::before {
+            content: "步驟 " counter(step-counter) ": ";
+            font-weight: bold;
+            color: #7289da;
+        }
+        .steps {
+            counter-reset: step-counter;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Discord OAuth 純前端 JavaScript 完整範例</h1>
+        
+        <!-- 授權結果區域 -->
+        <div class="section" id="authResult">
+            <h2>授權結果</h2>
+            <div id="loginStatus"></div>
+        </div>
+
+        <!-- 取得用戶資訊 -->
+        <div class="section" id="tokenSection">
+            <button id="tokenBtn" onclick="getTokenAndUserInfo()">取得 token</button>
+            <div id="tokenResult"></div>
+        </div>
+
+        <!-- 用戶資訊區域 -->
+        <div class="section" id="userSection">
+            <h2>用戶資訊</h2>
+            <div id="userInfo"></div>
+            <button onclick="logout()">登出</button>
+        </div>
+
+        <!-- 使用說明 -->
+        <div class="section">
+            <h2>完整實作步驟</h2>
+            <div class="steps">
+                <div class="step">
+                    前往 <a href="https://discord.com/developers/applications" target="_blank">Discord Developer Portal</a> 建立新應用程式
+                </div>
+                <div class="step">
+                    在 OAuth2 → General 中取得 Client ID 和 Client Secret
+                </div>
+                <div class="step">
+                    在 OAuth2 → Redirects 中新增你的重定向 URI
+                </div>
+                <div class="step">
+                    設定後端伺服器（使用上方程式碼）
+                </div>
+                <div class="step">
+                    在此頁面填入 Client ID 和正確的 Redirect URI
+                </div>
+                <div class="step">
+                    點擊「使用 Discord 登入」開始授權流程
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Discord OAuth 純前端實作（有限制）
+        class DiscordAuth {
+            constructor() {
+                this.config = this.loadConfig();
+                this.user = null;
+                this.code = null;
+                this.init();
+            }
+
+            init() {
+                // 檢查 URL 中是否有授權碼
+                const urlParams = new URLSearchParams(window.location.search);
+                const code = urlParams.get("code");
+                const error = urlParams.get("error");
+
+                if (error) {
+                    this.showError("授權被拒絕：" + error);
+                } else if (code) {
+                    this.code = code;
+                    this.showAuthCode(code);
+                }
+            }
+
+            loadConfig() {
+                return {
+                    clientId: localStorage.getItem("discord_client_id") || "",
+                    clientSecret: localStorage.getItem("discord_client_secret") || "",
+                    redirectUri: localStorage.getItem("discord_redirect_uri"),
+                };
+            }
+
+            showAuthCode(code) {
+                const statusDiv = document.getElementById("loginStatus");
+                console.log(code);
+                statusDiv.innerHTML = `
+                    <div class="success">
+                        <p><strong>授權成功！</strong></p>
+                        <p>授權碼：<code>${code}</code></p>
+                        <p><strong>注意：</strong> 由於純前端無法安全處理 Client Secret，需要後端 API 來完成 Token 交換。</p>
+                        <p>請將此授權碼傳送給後端 <code>/api/auth/discord/callback</code> API。</p>
+                    </div>
+                `;
+                
+                // 清理 URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+
+            showError(message) {
+                const statusDiv = document.getElementById("loginStuserSectionatus");
+                statusDiv.innerHTML = `<div class="error">${message}</div>`;
+            }
+
+            async handleDiscordCallback() {
+                // 用授權碼交換 access token
+                const tokenResponse = await fetch("https://discord.com/api/oauth2/token", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                    },
+                    body: new URLSearchParams({
+                        client_id: this.config.clientId,
+                        client_secret: this.config.clientSecret,
+                        grant_type: "authorization_code",
+                        code: this.code,
+                        redirect_uri: this.config.redirectUri,
+                        scope: "identify email",
+                    }),
+                });
+
+                const tokenData = await tokenResponse.json();
+
+                // 取得用戶資訊
+                const userResponse = await fetch("https://discord.com/api/users/@me", {
+                    headers: {
+                        Authorization: `Bearer ${tokenData.access_token}`,
+                    },
+                });
+
+                const userData = await userResponse.json();
+
+                const userSectionDiv = document.getElementById("userInfo");
+                userSectionDiv.innerHTML = `
+                    <div class="success">
+                        <p><strong>取得資訊成功！</strong></p>
+                        <p>User ID <code>${userData.id}</code></p>
+                        <p>User Display Name is ${userData.global_name}</p>
+                        <p>User Account is ${userData.username}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // 初始化 Discord OAuth
+        const discordAuth = new DiscordAuth();
+
+        function getTokenAndUserInfo() {
+            discordAuth.handleDiscordCallback();
+        }
+        
+    </script>
+</body>
+</html>

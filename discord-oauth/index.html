@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord OAuth 純前端 JavaScript 範例</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+        }
+        button {
+            background-color: #7289da;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #677bc4;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+        .error {
+            color: #e74c3c;
+            background-color: #fdf2f2;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #fecaca;
+            margin: 10px 0;
+        }
+        .success {
+            color: #16a34a;
+            background-color: #f0fdf4;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #bbf7d0;
+            margin: 10px 0;
+        }
+        .user-info {
+            background-color: #f0f9ff;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #bae6fd;
+        }
+        .avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-right: 15px;
+        }
+        .user-details {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .config-section {
+            background-color: #fef3c7;
+            border: 1px solid #fbbf24;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin: 5px 0;
+            font-family: monospace;
+        }
+        .code-block {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        .step {
+            counter-increment: step-counter;
+            margin-bottom: 20px;
+        }
+        .step::before {
+            content: "步驟 " counter(step-counter) ": ";
+            font-weight: bold;
+            color: #7289da;
+        }
+        .steps {
+            counter-reset: step-counter;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Discord OAuth 純前端 JavaScript 完整範例</h1>
+
+        <!-- 設定區域 -->
+        <div class="section config-section">
+            <h2>⚠️ 設定你的 Discord 應用程式資訊</h2>
+            <p><strong>重要：</strong> 在使用前，請先在 <a href="https://discord.com/developers/applications" target="_blank">Discord Developer Portal</a> 建立應用程式並填入以下資訊：</p>
+
+            <label for="clientId"><strong>Client ID:</strong></label>
+            <input type="text" id="clientId" placeholder="你的 Discord Client ID">
+
+            <label for="clientId"><strong>Client Secret:</strong></label>
+            <input type="text" id="clientSecret" placeholder="你的 Discord Client Secret">
+
+            <label for="redirectUri"><strong>Redirect URI:</strong></label>
+            <input type="text" id="redirectUri" placeholder="此頁面的完整 URL（如：http://localhost:3000/index.html）">
+
+            <p><strong>注意：</strong> Redirect URI 必須在 Discord 應用程式設定中的 OAuth2 → Redirects 中新增！</p>
+            <p><strong>注意：</strong> Secret 屬於敏感資訊，這裡是範例所以存在 local storage，請記得用安全的方式儲存！</p>
+
+            <button onclick="saveConfig()">儲存設定</button>
+            <div id="configStatus"></div>
+        </div>
+
+        <!-- 登入區域 -->
+        <div class="section" id="loginSection">
+            <h2>Discord OAuth 登入</h2>
+            <p>設定完成後，點擊下方按鈕開始 Discord OAuth 流程：</p>
+            <button id="loginBtn" onclick="startDiscordLogin()">使用 Discord 登入</button>
+            <div id="loginStatus"></div>
+        </div>
+
+        <!-- 使用說明 -->
+        <div class="section">
+            <h2>完整實作步驟</h2>
+            <div class="steps">
+                <div class="step">
+                    前往 <a href="https://discord.com/developers/applications" target="_blank">Discord Developer Portal</a> 建立新應用程式
+                </div>
+                <div class="step">
+                    在 OAuth2 → General 中取得 Client ID 和 Client Secret
+                </div>
+                <div class="step">
+                    在 OAuth2 → Redirects 中新增你的重定向 URI
+                </div>
+                <div class="step">
+                    設定後端伺服器（使用上方程式碼）
+                </div>
+                <div class="step">
+                    在此頁面填入 Client ID 和正確的 Redirect URI
+                </div>
+                <div class="step">
+                    點擊「使用 Discord 登入」開始授權流程
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Discord OAuth 純前端實作（有限制）
+        class DiscordAuth {
+            constructor() {
+                this.config = this.loadConfig();
+                this.user = null;
+                this.init();
+            }
+
+            init() {
+                // 檢查 URL 中是否有授權碼
+                const urlParams = new URLSearchParams(window.location.search);
+                const code = urlParams.get("code");
+                const error = urlParams.get("error");
+
+                if (error) {
+                    this.showError("授權被拒絕：" + error);
+                } else if (code) {
+                    this.showAuthCode(code);
+                }
+            }
+
+            loadConfig() {
+                return {
+                    clientId: localStorage.getItem("discord_client_id") || "",
+                    clientSecret: localStorage.getItem("discord_client_secret") || "",
+                    redirectUri: localStorage.getItem("discord_redirect_uri") || window.location.href.split("?")[0],
+                };
+            }
+
+            saveConfig() {
+                const clientId = document.getElementById("clientId").value.trim();
+                const clientSecret = document.getElementById("clientSecret").value.trim();
+                const redirectUri = document.getElementById("redirectUri").value.trim();
+
+                if (!clientId) {
+                    this.showConfigError("請填入 Client ID");
+                    return;
+                }
+
+                if (!clientSecret) {
+                    this.showConfigError("請填入 Client Secret");
+                    return;
+                }
+
+                if (!redirectUri) {
+                    this.showConfigError("請填入 Redirect URI");
+                    return;
+                }
+
+                localStorage.setItem("discord_client_id", clientId);
+                localStorage.setItem("discord_client_secret", clientSecret);
+                localStorage.setItem("discord_redirect_uri", redirectUri);
+
+                this.config = { clientId, clientSecret, redirectUri };
+                this.showConfigSuccess("設定已儲存！");
+            }
+
+            startLogin() {
+                if (!this.config.clientId) {
+                    this.showError("請先設定 Client ID");
+                    return;
+                }
+
+                const loginBtn = document.getElementById("loginBtn");
+                const statusDiv = document.getElementById("loginStatus");
+
+                try {
+                    loginBtn.disabled = true;
+                    statusDiv.innerHTML = "<div class=\"loading\">正在重定向到 Discord...</div>";
+
+                    // 建立 Discord 授權 URL
+                    const discordAuthUrl = new URL("https://discord.com/api/oauth2/authorize");
+                    discordAuthUrl.searchParams.set("client_id", this.config.clientId);
+                    discordAuthUrl.searchParams.set("redirect_uri", this.config.redirectUri);
+                    discordAuthUrl.searchParams.set("response_type", "code");
+                    discordAuthUrl.searchParams.set("scope", "identify email");
+
+                    // 重定向到 Discord
+                    window.location.href = discordAuthUrl.toString();
+                } catch (error) {
+                    console.error("Discord 登入錯誤:", error);
+                    this.showError("登入失敗：" + error.message);
+                    loginBtn.disabled = false;
+                }
+            }
+
+            showError(message) {
+                const statusDiv = document.getElementById("loginStatus");
+                statusDiv.innerHTML = `<div class="error">${message}</div>`;
+            }
+
+            showConfigError(message) {
+                const statusDiv = document.getElementById("configStatus");
+                statusDiv.innerHTML = `<div class="error">${message}</div>`;
+            }
+
+            showConfigSuccess(message) {
+                const statusDiv = document.getElementById("configStatus");
+                statusDiv.innerHTML = `<div class="success">${message}</div>`;
+            }
+        }
+
+        // 初始化
+        const discordAuth = new DiscordAuth();
+
+        // 載入儲存的設定
+        window.addEventListener("DOMContentLoaded", function() {
+            document.getElementById("clientId").value = discordAuth.config.clientId;
+            document.getElementById("clientSecret").value = discordAuth.config.clientSecret;
+            document.getElementById("redirectUri").value = discordAuth.config.redirectUri;
+        });
+
+        // 全域函數
+        function saveConfig() {
+            discordAuth.saveConfig();
+        }
+
+        function startDiscordLogin() {
+            discordAuth.startLogin();
+        }
+    </script>
+</body>
+</html>
