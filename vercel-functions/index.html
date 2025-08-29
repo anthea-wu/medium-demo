@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vercel Functions 使用範例</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+        }
+        button {
+            background-color: #7289da;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #677bc4;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+        .error {
+            color: #e74c3c;
+            background-color: #fdf2f2;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #fecaca;
+            margin: 10px 0;
+        }
+        .success {
+            color: #16a34a;
+            background-color: #f0fdf4;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #bbf7d0;
+            margin: 10px 0;
+        }
+        .user-info {
+            background-color: #f0f9ff;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #bae6fd;
+        }
+        .avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin-right: 15px;
+        }
+        .user-details {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .config-section {
+            background-color: #fef3c7;
+            border: 1px solid #fbbf24;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin: 5px 0;
+            font-family: monospace;
+        }
+        .code-block {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        .step {
+            counter-increment: step-counter;
+            margin-bottom: 20px;
+        }
+        .step::before {
+            content: "步驟 " counter(step-counter) ": ";
+            font-weight: bold;
+            color: #7289da;
+        }
+        .steps {
+            counter-reset: step-counter;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Vercel Functions 使用範例</h1>
+
+        <div class="section" id="simpleSection">
+            <h2>Simple Api</h2>
+            <button id="simpleBtn" onclick="getListBySimpleApi()">取得書籍清單</button>
+            <div id="simpleResult"></div>
+        </div>
+    </div>
+
+    <script>
+        const getListBySimpleApi = async () => {
+                const listResponse = await fetch("http://localhost:3000/api/list");
+                const listData = await listResponse.json();
+
+                const bookListSection = listData.map(book => {
+                    return `<li>${book.title} (${book.author})</li>`
+                }).join("")
+                
+                const simpleResultSection = document.getElementById("simpleResult");
+                simpleResultSection.innerHTML = `
+                    <div class="success">
+                        <p><strong>取得資訊成功！</strong></p>
+                        <ul>
+                            ${bookListSection}
+                        </ul>
+                    </div>
+                `;
+            }
+    </script>
+</body>
+</html>
