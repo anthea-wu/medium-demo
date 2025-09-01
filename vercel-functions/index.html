@@ -122,27 +122,64 @@
             <button id="simpleBtn" onclick="getListBySimpleApi()">取得書籍清單</button>
             <div id="simpleResult"></div>
         </div>
+
+        <div class="section config-section">
+            <h2>新增書籍</h2>
+
+            <label for="bookTitle"><strong>Book Title</strong></label>
+            <input type="text" id="bookTitle" placeholder="Test Driven Design">
+
+            <label for="bookAuthor"><strong>Book Author</strong></label>
+            <input type="text" id="bookAuthor" placeholder="Kent Beck">
+
+            <button onclick="addBookBySimpleApi()">新增</button>
+            <div id="addResult"></div>
+        </div>
     </div>
 
     <script>
         const getListBySimpleApi = async () => {
-                const listResponse = await fetch("http://localhost:3000/api/list");
-                const listData = await listResponse.json();
+            const listResponse = await fetch("http://localhost:3000/api/list");
+            const listData = await listResponse.json();
 
-                const bookListSection = listData.map(book => {
-                    return `<li>${book.title} (${book.author})</li>`
-                }).join("")
-                
-                const simpleResultSection = document.getElementById("simpleResult");
-                simpleResultSection.innerHTML = `
-                    <div class="success">
-                        <p><strong>取得資訊成功！</strong></p>
-                        <ul>
-                            ${bookListSection}
-                        </ul>
-                    </div>
-                `;
+            const bookListSection = listData.map(book => {
+                return `<li>${book.title} (${book.author})</li>`
+            }).join("")
+            
+            const simpleResultSection = document.getElementById("simpleResult");
+            simpleResultSection.innerHTML = `
+                <div class="success">
+                    <p><strong>取得資訊成功！</strong></p>
+                    <ul>
+                        ${bookListSection}
+                    </ul>
+                </div>
+            `;
+        }
+            
+        const addBookBySimpleApi = async () => {
+            const title = document.getElementById("bookTitle").value.trim();
+            const author = document.getElementById("bookAuthor").value.trim();
+            const newBook = {
+                title,
+                author
             }
+
+            await fetch("http://localhost:3000/api/list", {
+                method: "POST",
+                body: JSON.stringify(newBook),
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            });
+
+            const addResultSection = document.getElementById("addResult");
+            addResultSection.innerHTML = `
+                <div class="success">
+                    <p><strong>新增成功 ${newBook.title} (${newBook.author})！</strong></p>
+                </div>
+            `;
+        }
     </script>
 </body>
 </html>
