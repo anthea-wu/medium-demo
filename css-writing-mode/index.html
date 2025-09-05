@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        .container { padding: 20px; font-family: 'Microsoft JhengHei', sans-serif; }
+        
+        h3 {
+            margin-top: 50px;
+        }
+
+        /* 原始橫向文字 */
+        .original-text {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border: 1px solid #dee2e6;
+            margin: 10px 0;
+        }
+
+        /* 方法一：rotate 旋轉 */
+        .rotate-demo {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            margin: 20px 0;
+            position: relative;
+            height: 200px;
+        }
+
+        .text-rotate {
+            transform: rotate(90deg);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform-origin: center;
+            transform: rotate(90deg) translate(-50%, -50%);
+            white-space: nowrap;
+        }
+
+        /* 方法二：writing-mode */
+        .writing-mode-demo {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 15px;
+            margin: 20px 0;
+            display: inline-block;
+        }
+
+        .text-writing-mode {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            height: 200px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h3>📚 生活中的垂直文字靈感</h3>
+        <div class="original-text">
+            誠品書店：日式文學作品封面
+        </div>
+
+        <h3>❌ 方法一：使用 rotate（會遇到問題）</h3>
+        <div class="rotate-demo">
+            <div class="text-rotate">誠品書店：日式文學作品封面</div>
+            <p style="position: absolute; bottom: 10px; color: #e74c3c; font-size: 12px;">
+                問題：定位複雜、空間計算錯誤
+            </p>
+        </div>
+
+        <h3>✅ 更優雅的解決方案：writing-mode</h3>
+        <div class="writing-mode-demo">
+            <div class="text-writing-mode">
+                誠品書店：日式文學作品封面
+            </div>
+        </div>
+    </div>
+</body>
+</html>
